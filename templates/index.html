@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('language', 'en') }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ translations.app_title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="settings-menu">
+            <button id="settings-btn" class="button">{{ translations.settings }}</button>
+            <div id="settings-dropdown" class="settings-dropdown hidden">
+                <div class="settings-item">
+                    <label for="language-select">{{ translations.language }}</label>
+                    <select id="language-select">
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                        <option value="he">עברית</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <header>
+            <h1>{{ translations.app_title }}</h1>
+            <p>{{ translations.choose_subject }}</p>
+        </header>
+
+        <div id="subject-gallery" class="subject-gallery">
+            {% for key, subject in subjects.items() %}
+            <div class="subject-card" data-subject="{{ key }}">
+                <div class="subject-icon">{{ subject.icon }}</div>
+                <h3>{{ subject.name }}</h3>
+                <p>{{ subject.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="learning-area" class="learning-area hidden">
+            <div class="chat-section">
+                <div class="current-problem">
+                    <h2>{{ translations.practice_problem }}</h2>
+                    <div id="current-drill" class="drill-content"></div>
+                    <button id="new-drill-btn" class="button">{{ translations.new_problem }}</button>
+                </div>
+                <div id="chat-messages" class="chat-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="{{ translations.chat_placeholder }}">
+                    <button id="send-message-btn" class="button">{{ translations.send }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
