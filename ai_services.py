@@ -59,7 +59,8 @@ def call_claude(
     context: Optional[str] = None,
     model: str = "claude-3-sonnet-20240229",
     max_tokens: int = 512,
-    dry_run: bool = False
+    dry_run: bool = False,
+    language: str = 'en'
 ):
     """
     Call Claude API with retry mechanism and proper error handling.
@@ -70,6 +71,7 @@ def call_claude(
         model: Claude model to use
         max_tokens: Maximum tokens in response
         dry_run: If True, return mock response
+        language: Language for the response (en, he, etc.)
     
     Returns:
         str: Claude's response
@@ -85,10 +87,15 @@ def call_claude(
         raise AIServiceError("Anthropic client not initialized - missing API key")
         
     try:
-        # Prepare system message and user message
-        system = "You are a helpful math tutor."
-        if context:
-            system += f"\n\nContext: {context}"
+        # Prepare system message and user message based on language
+        if language == 'he':
+            system = "אתה מורה למתמטיקה מסור ועוזר. עליך לענות בעברית בלבד."
+            if context:
+                system += f"\n\nהקשר: {context}"
+        else:
+            system = "You are a helpful math tutor."
+            if context:
+                system += f"\n\nContext: {context}"
             
         response = anthropic_client.messages.create(
             model=model,
@@ -101,6 +108,7 @@ def call_claude(
                 }
             ]
         )
+        
         return response.content[0].text
         
     except Exception as e:
@@ -135,3 +143,61 @@ def call_tavily_search(query: str, dry_run: bool = False):
     except Exception as e:
         logger.error(f"Error calling Tavily API: {str(e)}")
         raise AIServiceError(f"Failed to get search results: {str(e)}")
+
+def generate_math_problem(subject: str, language: str = 'en') -> dict:
+    """
+    Generate a math problem using Claude in the specified language.
+    
+    Args:
+        subject: The math subject (algebra, geometry, etc.)
+        language: The language to generate the problem in (en, he, etc.)
+    
+    Returns:
+        dict: Contains 'question' and 'answer' keys
+    """
+    if language == 'he':
+        prompt = f"""צור שאלה במתמטיקה בנושא {subject}. 
+        התשובה חייבת להיות בפורמט JSON המדויק הבא:
+        {{
+            "question": "טקסט השאלה",
+            "answer": "התשובה המספרית או הפתרון הקצר"
+        }}
+        וודא שהשאלה מתאימה לרמת תיכון.
+        השתמש בפורמט RTL נכון.
+        חשוב: התשובה צריכה להיות מדויקת ומספרית ככל האפשר."""
+    else:
+        prompt = f"""Generate a {subject} math problem. 
+        The response should be in this exact JSON format:
+        {{
+            "question": "the problem text",
+            "answer": "the numerical answer or short solution"
+        }}
+        Make sure the problem is appropriate for high school level.
+        Important: The answer should be as precise and numerical as possible."""
+    
+    try:
+        response = call_claude(prompt, max_tokens=256, language=language)
+        # Extract the JSON part from the response
+        import json
+        import re
+        
+        # Find JSON-like content between curly braces
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            problem_dict = json.loads(json_match.group())
+            return problem_dict
+        else:
+            raise AIServiceError("Failed to parse JSON from Claude's response")
+            
+    except Exception as e:
+        logger.error(f"Error generating math problem: {e}")
+        # Fallback problem in case of error
+        if language == 'he':
+            return {
+                "question": "כמה זה 15 + 27?",
+                "answer": "42"
+            }
+        return {
+            "question": "What is 15 + 27?",
+            "answer": "42"
+        }

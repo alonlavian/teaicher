@@ -14,9 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsBtn = document.getElementById('settings-btn');
     const settingsDropdown = document.getElementById('settings-dropdown');
     const languageSelect = document.getElementById('language-select');
+    const homeBtn = document.getElementById('home-btn');
 
     // Set initial language value
     languageSelect.value = document.documentElement.lang;
+
+    // Home button functionality
+    homeBtn.addEventListener('click', () => {
+        learningArea.classList.add('hidden');
+        subjectGallery.classList.remove('hidden');
+        // Clear chat and current drill
+        chatMessages.innerHTML = '';
+        document.getElementById('current-drill').textContent = '';
+        currentSubject = '';
+    });
 
     // Toggle settings dropdown
     settingsBtn.addEventListener('click', () => {
@@ -41,9 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (response.ok) {
-            const data = await response.json();
-            updatePageTranslations(data.translations, data.subjects);
-            document.documentElement.lang = languageSelect.value;
+            // Redirect to home page after language change
+            window.location.href = '/';
         }
     });
 
@@ -73,10 +83,19 @@ function loadNewDrill() {
         .then(response => response.json())
         .then(data => {
             console.log('New drill received:', data);
+            if (data.error) {
+                addMessage(data.error, 'error');
+                return;
+            }
+            
+            // Clear chat if requested by backend
+            if (data.clearChat) {
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';
+            }
+            
+            // Update the current drill display
             document.getElementById('current-drill').textContent = data.drill;
-            // Add the new problem as a tutor message
-            addMessage('Here\'s your new problem:', 'tutor');
-            addMessage(data.drill, 'problem');
         })
         .catch(error => console.error('Error loading drill:', error));
 }
@@ -97,20 +116,34 @@ function sendMessage() {
         body: JSON.stringify({
             message: message,
             subject: currentSubject,
-            drill: document.getElementById('current-drill').textContent
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            addMessage('Sorry, I encountered an error. Please try again.', 'tutor');
-        } else {
-            addMessage(data.response, 'tutor');
+            addMessage(data.error, 'error');
+            return;
+        }
+        
+        addMessage(data.response, 'tutor');
+        
+        // If the drill is solved, disable input until new drill is loaded
+        if (data.drillSolved) {
+            chatInput.disabled = true;
+            const newDrillBtn = document.getElementById('new-drill-btn');
+            newDrillBtn.classList.add('highlight'); // Add some visual indication
+            
+            // Re-enable input when new drill button is clicked
+            newDrillBtn.addEventListener('click', function onNewDrill() {
+                chatInput.disabled = false;
+                newDrillBtn.classList.remove('highlight');
+                newDrillBtn.removeEventListener('click', onNewDrill);
+            }, { once: true });
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        addMessage('Sorry, I encountered an error. Please try again.', 'tutor');
+        console.error('Error sending message:', error);
+        addMessage('Sorry, an error occurred while sending your message.', 'error');
     });
 }
 
@@ -118,6 +151,14 @@ function addMessage(message, sender) {
     const chatMessages = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', `${sender}-message`);
+    
+    // Check if we need RTL
+    const lang = document.documentElement.lang;
+    if (lang === 'he') {
+        messageDiv.dir = 'rtl';
+        messageDiv.style.textAlign = 'right';
+    }
+    
     messageDiv.textContent = message;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;

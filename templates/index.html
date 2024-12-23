@@ -5,20 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ translations.app_title }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <div class="container">
-        <div class="settings-menu">
-            <button id="settings-btn" class="button">{{ translations.settings }}</button>
-            <div id="settings-dropdown" class="settings-dropdown hidden">
-                <div class="settings-item">
-                    <label for="language-select">{{ translations.language }}</label>
-                    <select id="language-select">
-                        <option value="en">English</option>
-                        <option value="fr">Français</option>
-                        <option value="he">עברית</option>
-                    </select>
+        <div class="top-nav">
+            <button id="home-btn" class="icon-button" title="{{ translations.home }}">
+                <i class="fas fa-home"></i>
+            </button>
+            <div class="settings-menu">
+                <button id="settings-btn" class="icon-button" title="{{ translations.settings }}">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div id="settings-dropdown" class="settings-dropdown hidden">
+                    <div class="settings-item">
+                        <label for="language-select">{{ translations.language }}</label>
+                        <select id="language-select">
+                            <option value="en">English</option>
+                            <option value="fr">Français</option>
+                            <option value="he">עברית</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -42,12 +50,12 @@
             <div class="chat-section">
                 <div class="current-problem">
                     <h2>{{ translations.practice_problem }}</h2>
-                    <div id="current-drill" class="drill-content"></div>
+                    <div id="current-drill" class="drill-content" dir="auto"></div>
                     <button id="new-drill-btn" class="button">{{ translations.new_problem }}</button>
                 </div>
                 <div id="chat-messages" class="chat-messages"></div>
                 <div class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="{{ translations.chat_placeholder }}">
+                    <input type="text" id="chat-input" placeholder="{{ translations.chat_placeholder }}" dir="auto">
                     <button id="send-message-btn" class="button">{{ translations.send }}</button>
                 </div>
             </div>

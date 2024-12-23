@@ -11,6 +11,8 @@ TRANSLATIONS = {
         'send': 'Send',
         'settings': 'Settings',
         'language': 'Language',
+        'home': 'Home',
+        'chat_placeholder': 'Ask for help or enter your answer...',
         'algebra': {
             'name': 'Algebra',
             'description': 'Learn equations, functions, and mathematical patterns'
@@ -58,7 +60,7 @@ TRANSLATIONS = {
         }
     },
     'he': {
-        'app_title': 'עוזר למידת מתמטיקה',
+        'app_title': 'עוזר למידה במתמטיקה',
         'choose_subject': 'בחר נושא להתחיל ללמוד',
         'practice_problem': 'תרגיל לתרגול',
         'enter_answer': 'הכנס את התשובה שלך כאן...',
@@ -69,6 +71,8 @@ TRANSLATIONS = {
         'send': 'שלח',
         'settings': 'הגדרות',
         'language': 'שפה',
+        'home': 'דף הבית',
+        'chat_placeholder': 'בקש עזרה או הכנס את תשובתך...',
         'algebra': {
             'name': 'אלגברה',
             'description': 'למד משוואות, פונקציות ותבניות מתמטיות'

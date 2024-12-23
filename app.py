@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request, session
-from ai_services import call_claude
+from ai_services import call_claude, generate_math_problem
 import os
 from dotenv import load_dotenv
 from translations import TRANSLATIONS
@@ -50,40 +50,22 @@ def get_translated_subjects(lang):
     return translated
 
 def generate_drill(subject):
-    drills = {
-        'algebra': [
-            {'question': 'Solve for x: 2x + 5 = 13', 'answer': '4'},
-            {'question': 'Find x: 3(x - 4) = 15', 'answer': '9'},
-            {'question': 'Solve the equation: 5x + 2 = 3x - 6', 'answer': '-4'},
-            {'question': 'If 2(x + 3) = 16, what is x?', 'answer': '5'}
-        ],
-        'geometry': [
-            {'question': 'Calculate the area of a triangle with base 6 and height 8', 'answer': '24'},
-            {'question': 'Find the perimeter of a rectangle with length 10 and width 4', 'answer': '28'},
-            {'question': 'What is the area of a circle with radius 5?', 'answer': '78.54'},
-            {'question': 'Calculate the volume of a cube with side length 3', 'answer': '27'}
-        ],
-        'arithmetic': [
-            {'question': 'What is 15% of 80?', 'answer': '12'},
-            {'question': 'Calculate: 123 × 12', 'answer': '1476'},
-            {'question': 'Divide 156 by 12', 'answer': '13'},
-            {'question': 'What is the sum of 1/4 and 2/3?', 'answer': '0.917'}
-        ],
-        'statistics': [
-            {'question': 'Calculate the mean of the numbers: 4, 8, 15, 16, 23', 'answer': '13.2'},
-            {'question': 'Find the median of: 7, 12, 3, 9, 15, 18', 'answer': '10.5'},
-            {'question': 'What is the mode of: 2, 4, 4, 6, 8, 4, 10?', 'answer': '4'},
-            {'question': 'Calculate the range of: 15, 25, 35, 45, 55', 'answer': '40'}
-        ]
-    }
-    import random
-    drill_list = drills.get(subject, [{'question': 'Invalid subject', 'answer': ''}])
-    drill = random.choice(drill_list)
-    return {'drill': drill['question'], 'answer': drill['answer']}
+    """Generate a drill for the given subject using AI."""
+    lang = session.get('language', 'he')  # Get current language from session
+    try:
+        problem = generate_math_problem(subject, lang)
+        return {'drill': problem['question'], 'answer': problem['answer']}
+    except Exception as e:
+        logger.error(f"Error generating drill: {e}")
+        # Fallback to a simple problem if generation fails
+        return {
+            'drill': '1 + 1 = ?',
+            'answer': '2'
+        }
 
 @app.route('/')
 def home():
-    lang = session.get('language', 'en')
+    lang = session.get('language', 'he')  # Changed default from 'en' to 'he'
     return render_template('index.html',
                          subjects=get_translated_subjects(lang),
                          translations=TRANSLATIONS[lang])
@@ -103,10 +85,108 @@ def set_language():
 
 @app.route('/get_drill/<subject>')
 def get_drill(subject):
-    drill_data = generate_drill(subject)
-    # Store the answer in the session for validation
-    session['current_answer'] = drill_data['answer']
-    return jsonify({'drill': drill_data['drill']})
+    try:
+        lang = session.get('language', 'he')
+        drill_data = generate_math_problem(subject, lang)
+        # Start a new drill session
+        session['current_drill'] = drill_data
+        session['conversation_history'] = []  # Reset conversation history
+        session['drill_solved'] = False
+        # Only send the question to the frontend
+        return jsonify({
+            'drill': drill_data['question'],
+            'clearChat': True  # Signal frontend to clear chat
+        })
+    except Exception as e:
+        logger.error(f"Error getting drill: {e}")
+        error_messages = {
+            'he': 'מצטער, לא הצלחתי ליצור תרגיל. אנא נסה שוב.',
+            'en': 'Sorry, I could not generate a drill. Please try again.'
+        }
+        return jsonify({'error': error_messages.get(lang, error_messages['en'])})
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.json
+    message = data.get('message', '')
+    subject = data.get('subject', '')
+    lang = session.get('language', 'he')
+    current_drill = session.get('current_drill', {})
+    conversation_history = session.get('conversation_history', [])
+    drill_solved = session.get('drill_solved', False)
+
+    try:
+        # Create context with conversation history
+        if current_drill:
+            history_text = "\n".join([f"{'User' if i % 2 == 0 else 'Assistant'}: {msg}" 
+                                    for i, msg in enumerate(conversation_history)])
+            
+            if lang == 'he':
+                context = f"""נושא נוכחי: {subject}
+                שאלה נוכחית: {current_drill['question']}
+                תשובה נכונה: {current_drill['answer']}
+                
+                היסטוריית שיחה:
+                {history_text}
+                
+                הנחיות חשובות:
+                1. אם התלמיד מבקש עזרה, תן לו רמז קטן שיכוון אותו לכיוון הנכון. אל תיתן את הפתרון המלא.
+                2. אם התלמיד נתקע, תן לו רמז נוסף שיקדם אותו.
+                3. רק אם התלמיד מנסה לפתור ונותן תשובה, בדוק אם היא נכונה.
+                4. אם התשובה נכונה, התחל את תגובתך עם: [CORRECT_ANSWER]
+                
+                שמור על גישה מעודדת ותומכת."""
+            else:
+                context = f"""Current subject: {subject}
+                Current problem: {current_drill['question']}
+                Correct answer: {current_drill['answer']}
+                
+                Conversation history:
+                {history_text}
+                
+                Important guidelines:
+                1. If the student asks for help, give them a small hint that points them in the right direction. Do not provide the full solution.
+                2. If the student is stuck, provide an additional hint to help them progress.
+                3. Only check if an answer is correct when the student attempts to solve and provides an answer.
+                4. If the answer is correct, start your response with: [CORRECT_ANSWER]
+                
+                Maintain an encouraging and supportive approach."""
+        else:
+            context = f"Subject: {subject}"
+        
+        response = call_claude(
+            query=message,
+            context=context,
+            language=lang
+        )
+        
+        # Update conversation history
+        conversation_history.extend([message, response])
+        session['conversation_history'] = conversation_history
+
+        # Check if the answer was correct
+        if '[CORRECT_ANSWER]' in response:
+            session['drill_solved'] = True
+            if lang == 'he':
+                response += "\n\nמצוין! אתה מוכן לתרגיל הבא. לחץ על 'תרגיל חדש' להמשיך."
+            else:
+                response += "\n\nExcellent! You're ready for the next problem. Click 'New Problem' to continue."
+
+        return jsonify({
+            'success': True,
+            'response': response,
+            'drillSolved': session['drill_solved']
+        })
+    except Exception as e:
+        logger.error(f"Error in chat: {e}")
+        error_messages = {
+            'he': 'מצטער, אירעה שגיאה. אנא נסה שוב.',
+            'en': 'Sorry, an error occurred. Please try again.'
+        }
+        return jsonify({
+            'success': False,
+            'response': error_messages.get(lang, error_messages['en'])
+        })
 
 @app.route('/validate_answer', methods=['POST'])
 def validate_answer():
@@ -149,39 +229,6 @@ def validate_answer():
         })
     except Exception as e:
         logging.error(f"Error validating answer: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    try:
-        data = request.json
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        message = data.get('message')
-        subject = data.get('subject')
-        drill = data.get('drill', '')
-
-        if not message or not subject:
-            return jsonify({'error': 'Missing required fields'}), 400
-
-        lang = session.get('language', 'en')
-        language_context = {
-            'en': 'Respond in English.',
-            'fr': 'Répondez en français.',
-            'he': 'השב בעברית.'
-        }
-
-        context = f"""You are a friendly and encouraging math tutor specializing in {subject}.
-        {language_context[lang]}
-        Current problem being discussed: {drill}
-        Provide clear, step-by-step explanations when helping with problems.
-        Keep responses concise but informative."""
-
-        response = call_claude(message, context=context)
-        return jsonify({'response': response})
-    except Exception as e:
-        logging.error(f"Error in chat: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/health')

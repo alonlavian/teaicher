@@ -22,7 +22,7 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 80px 20px 80px 20px;
 }
 
 header {
@@ -104,24 +104,52 @@ h1 {
     padding: 10px 15px;
     border-radius: 8px;
     margin: 5px 0;
+    white-space: pre-wrap;  /* Preserve line breaks and spacing */
 }
 
 .user-message {
     background: var(--primary-color);
     color: white;
     align-self: flex-end;
+    margin-left: 20%;  /* Add margin for better chat bubble layout */
 }
 
 .tutor-message {
     background: var(--secondary-color);
     align-self: flex-start;
+    margin-right: 20%;  /* Add margin for better chat bubble layout */
 }
 
-.problem-message {
-    background: #e3f2fd;
-    border-left: 4px solid var(--primary-color);
-    align-self: stretch;
-    font-weight: 500;
+html[lang="he"] .subject-card,
+html[lang="he"] .current-problem h2,
+html[lang="he"] .settings-item label {
+    text-align: right;
+}
+
+html[lang="he"] .user-message {
+    align-self: flex-start;
+    margin-left: 0;
+    margin-right: 20%;
+}
+
+html[lang="he"] .tutor-message {
+    align-self: flex-end;
+    margin-left: 20%;
+    margin-right: 0;
+}
+
+[dir="rtl"] {
+    text-align: right;
+}
+
+html[lang="he"] .settings-menu {
+    left: 20px;
+    right: auto;
+}
+
+html[lang="he"] .settings-dropdown {
+    left: 0;
+    right: auto;
 }
 
 .chat-input-area {
@@ -158,38 +186,52 @@ h1 {
     display: none;
 }
 
-.settings-menu {
-    position: absolute;
+.top-nav {
+    position: fixed;
     top: 20px;
-    right: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.icon-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    transition: background-color 0.2s, transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.icon-button:hover {
+    background: #357abd;
+    transform: scale(1.1);
+}
+
+.settings-menu {
+    position: relative;
 }
 
 .settings-dropdown {
     position: absolute;
     top: 100%;
-    right: 0;
+    left: 0;
     background: white;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 10px;
+    border-radius: 8px;
+    padding: 15px;
     min-width: 200px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.settings-item {
-    margin: 10px 0;
-}
-
-.settings-item label {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.settings-item select {
-    width: 100%;
-    padding: 5px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
 }
 
 .answer-section {
@@ -225,16 +267,9 @@ h1 {
     margin-top: 0.5rem;
 }
 
-[lang="he"] {
-    direction: rtl;
-}
-
-[lang="he"] .settings-menu {
-    left: 1rem;
-    right: auto;
-}
-
-[lang="he"] .settings-dropdown {
-    left: 0;
-    right: auto;
+.problem-message {
+    background: #e3f2fd;
+    border-left: 4px solid var(--primary-color);
+    align-self: stretch;
+    font-weight: 500;
 }
