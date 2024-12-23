@@ -201,3 +201,150 @@ def generate_math_problem(subject: str, language: str = 'en') -> dict:
             "question": "What is 15 + 27?",
             "answer": "42"
         }
+
+def generate_drill(subject: str, language: str = 'he') -> dict:
+    """
+    Generate a math drill using Claude in the specified language.
+    
+    Args:
+        subject: The math subject (algebra, geometry, etc.)
+        language: The language to generate the drill in (en, he, etc.)
+    
+    Returns:
+        dict: Contains 'question', 'answer', and 'hint' keys
+    """
+    subjects = {
+        'he': {
+            'algebra': 'אלגברה',
+            'geometry': 'גאומטריה'
+        },
+        'en': {
+            'algebra': 'algebra',
+            'geometry': 'geometry'
+        }
+    }
+
+    # Handle unknown subjects gracefully
+    if language not in subjects or subject not in subjects[language]:
+        logger.error(f"Unknown subject {subject} or language {language}")
+        return {
+            'question': 'Invalid subject or language',
+            'answer': '',
+            'hint': ''
+        }
+
+    subject_name = subjects[language][subject]
+    
+    if language == "he":
+        prompt = f"""בתור מורה למתמטיקה, אנא צור תרגיל {subject_name} ברמה מתאימה לתלמיד תיכון.
+        התרגיל צריך להיות מאתגר אך פתיר.
+        חשוב: החזר את התשובה בפורמט הבא בדיוק, עם התגיות באנגלית:
+        QUESTION: [כאן תבוא השאלה]
+        ANSWER: [כאן יבוא הפתרון המלא]
+        HINT: [כאן יבוא רמז שיכול לעזור לתלמיד]"""
+    else:
+        prompt = f"""As a math teacher, please create a high school level {subject_name} problem.
+        The problem should be challenging but solvable.
+        Important: Return the answer in exactly this format with these tags:
+        QUESTION: [problem statement goes here]
+        ANSWER: [complete solution goes here]
+        HINT: [helpful hint goes here]"""
+
+    try:
+        response = call_claude(prompt, max_tokens=512, language=language)
+        logger.debug(f"Claude response: {response}")
+        
+        # Parse response using more robust method
+        lines = response.split('\n')
+        result = {}
+        current_key = None
+        current_value = []
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('QUESTION:'):
+                current_key = 'question'
+                current_value = [line[9:].strip()]
+            elif line.startswith('ANSWER:'):
+                if current_key:
+                    result[current_key] = '\n'.join(current_value)
+                current_key = 'answer'
+                current_value = [line[7:].strip()]
+            elif line.startswith('HINT:'):
+                if current_key:
+                    result[current_key] = '\n'.join(current_value)
+                current_key = 'hint'
+                current_value = [line[5:].strip()]
+            elif line and current_key:
+                current_value.append(line)
+        
+        if current_key:
+            result[current_key] = '\n'.join(current_value)
+            
+        # Validate result
+        if not all(k in result for k in ['question', 'answer', 'hint']):
+            raise ValueError("Missing required fields in response")
+            
+        logger.debug(f"Parsed result: {result}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error generating drill: {e}")
+        if language == "he":
+            return {
+                'question': 'מצטער, נתקלתי בשגיאה. אנא נסה שוב.',
+                'answer': '',
+                'hint': ''
+            }
+        else:
+            return {
+                'question': 'Sorry, I encountered an error. Please try again.',
+                'answer': '',
+                'hint': ''
+            }
+
+def get_drill_answer(question: str, answer: str, language: str = 'he') -> dict:
+    """
+    Get the answer to a math drill using Claude in the specified language.
+    
+    Args:
+        question: The drill question
+        answer: The student's answer
+        language: The language to generate the answer in (en, he, etc.)
+    
+    Returns:
+        dict: Contains 'correct' and 'feedback' keys
+    """
+    if language == "he":
+        prompt = f"""שאלה: {question}
+        תשובת התלמיד: {answer}
+        
+        האם התשובה נכונה? תן משוב מפורט.
+        אם התשובה נכונה, התחל את תשובתך עם [CORRECT].
+        אם התשובה לא נכונה, תן רמז מועיל מבלי לתת את התשובה המלאה."""
+    else:
+        prompt = f"""Question: {question}
+        Student's answer: {answer}
+        
+        Is this answer correct? Provide detailed feedback.
+        If correct, start your response with [CORRECT].
+        If incorrect, provide a helpful hint without giving away the full answer."""
+
+    try:
+        response = call_claude(prompt, max_tokens=512, language=language)
+        return {
+            'correct': '[CORRECT]' in response,
+            'feedback': response.replace('[CORRECT]', '').strip()
+        }
+    except Exception as e:
+        logger.error(f"Error checking answer: {e}")
+        if language == "he":
+            return {
+                'correct': False,
+                'feedback': 'מצטער, נתקלתי בשגיאה. אנא נסה שוב.'
+            }
+        else:
+            return {
+                'correct': False,
+                'feedback': 'Sorry, I encountered an error. Please try again.'
+            }

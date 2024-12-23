@@ -28,7 +28,27 @@ TRANSLATIONS = {
         'statistics': {
             'name': 'Statistics',
             'description': 'Understand data analysis and probability'
-        }
+        },
+        # Auth translations
+        'login': 'Login',
+        'register': 'Register',
+        'username': 'Username',
+        'password': 'Password',
+        'email': 'Email',
+        'no_account': "Don't have an account?",
+        'have_account': 'Already have an account?',
+        # Profile translations
+        'welcome': 'Welcome',
+        'total_score': 'Total Score',
+        'member_since': 'Member Since',
+        'learning_history': 'Learning History',
+        'problems_attempted': 'Attempted',
+        'problems_solved': 'Solved',
+        'hints_used': 'Hints Used',
+        'session_score': 'Score',
+        'no_sessions': 'No learning sessions yet. Start solving problems to see your progress!',
+        'profile': 'Profile',
+        'logout': 'Logout'
     },
     'fr': {
         'app_title': 'Assistant d\'Apprentissage des Mathématiques',
@@ -88,6 +108,26 @@ TRANSLATIONS = {
         'statistics': {
             'name': 'סטטיסטיקה',
             'description': 'הבן ניתוח נתונים והסתברות'
-        }
+        },
+        # Auth translations
+        'login': 'התחברות',
+        'register': 'הרשמה',
+        'username': 'שם משתמש',
+        'password': 'סיסמה',
+        'email': 'דואר אלקטרוני',
+        'no_account': 'אין לך חשבון?',
+        'have_account': 'כבר יש לך חשבון?',
+        # Profile translations
+        'welcome': 'ברוך הבא',
+        'total_score': 'ניקוד כולל',
+        'member_since': 'חבר מאז',
+        'learning_history': 'היסטוריית למידה',
+        'problems_attempted': 'תרגילים שנוסו',
+        'problems_solved': 'תרגילים שנפתרו',
+        'hints_used': 'רמזים שנעזרת',
+        'session_score': 'ניקוד',
+        'no_sessions': 'אין עדיין מפגשי למידה. התחל לפתור תרגילים כדי לראות את ההתקדמות שלך!',
+        'profile': 'פרופיל',
+        'logout': 'התנתק'
     }
 }
