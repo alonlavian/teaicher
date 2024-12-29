@@ -46,6 +46,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const subject = this.dataset.subject;
             console.log('Selected subject:', subject);
             
+            // Immediately hide gallery and show learning area
+            subjectGallery.style.display = 'none';
+            learningArea.classList.remove('hidden');
+            problemText.innerHTML = '{{ translations.loading }}...';
+            
+            // Mark this card as active
+            subjectCards.forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            
             try {
                 const response = await fetch('/get_drill', {
                     method: 'POST',
@@ -67,12 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 problemText.innerHTML = data.question;
                 feedbackDiv.classList.add('hidden');
                 userInput.value = '';
-                subjectGallery.style.display = 'none';
-                learningArea.classList.remove('hidden');
-                
-                // Mark this card as active
-                subjectCards.forEach(c => c.classList.remove('active'));
-                this.classList.add('active');
                 
             } catch (error) {
                 console.error('Error fetching drill:', error);

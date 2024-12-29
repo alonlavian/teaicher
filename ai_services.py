@@ -4,7 +4,7 @@ Module for handling AI service interactions (Claude and Tavily).
 from typing import Optional, Dict, Any, Union
 import logging
 import os
-from anthropic import Anthropic
+from anthropic import Client
 from tavily import TavilyClient
 from tenacity import retry, stop_after_attempt, wait_exponential
 from dotenv import load_dotenv
@@ -36,7 +36,7 @@ def get_anthropic_client():
     api_key = os.getenv('ANTHROPIC_API_KEY')
     if not api_key:
         return None
-    return Anthropic(api_key=api_key)
+    return Client(api_key=api_key)
 
 _anthropic_client = None
 _tavily_client = None
@@ -213,14 +213,20 @@ def generate_drill(subject: str, language: str = 'he') -> dict:
     Returns:
         dict: Contains 'question', 'answer', and 'hint' keys
     """
+    logger.info(f"Generating drill for subject: {subject}, language: {language}")
+    
     subjects = {
         'he': {
             'algebra': 'אלגברה',
-            'geometry': 'גאומטריה'
+            'geometry': 'גאומטריה',
+            'arithmetic': 'חשבון',
+            'statistics': 'סטטיסטיקה'
         },
         'en': {
             'algebra': 'algebra',
-            'geometry': 'geometry'
+            'geometry': 'geometry',
+            'arithmetic': 'arithmetic',
+            'statistics': 'statistics'
         }
     }
 
@@ -234,6 +240,7 @@ def generate_drill(subject: str, language: str = 'he') -> dict:
         }
 
     subject_name = subjects[language][subject]
+    logger.info(f"Translated subject name: {subject_name}")
     
     if language == "he":
         prompt = f"""בתור מורה למתמטיקה, אנא צור תרגיל {subject_name} ברמה מתאימה לתלמיד תיכון.
@@ -251,6 +258,7 @@ def generate_drill(subject: str, language: str = 'he') -> dict:
         HINT: [helpful hint goes here]"""
 
     try:
+        logger.info("Calling Claude API...")
         response = call_claude(prompt, max_tokens=512, language=language)
         logger.debug(f"Claude response: {response}")
         
@@ -262,6 +270,7 @@ def generate_drill(subject: str, language: str = 'he') -> dict:
         
         for line in lines:
             line = line.strip()
+            logger.debug(f"Processing line: {line}")
             if line.startswith('QUESTION:'):
                 current_key = 'question'
                 current_value = [line[9:].strip()]
@@ -281,15 +290,23 @@ def generate_drill(subject: str, language: str = 'he') -> dict:
         if current_key:
             result[current_key] = '\n'.join(current_value)
             
-        # Validate result
-        if not all(k in result for k in ['question', 'answer', 'hint']):
-            raise ValueError("Missing required fields in response")
+        # Validate result and provide defaults
+        required_fields = ['question', 'answer']
+        if not all(k in result for k in required_fields):
+            missing = [k for k in required_fields if k not in result]
+            logger.error(f"Missing required fields in response: {missing}")
+            raise ValueError(f"Missing required fields in response: {missing}")
             
-        logger.debug(f"Parsed result: {result}")
+        # Add default hint if missing
+        if 'hint' not in result:
+            result['hint'] = 'נסה לחשוב על הצעדים הראשונים לפתרון.' if language == 'he' else 'Try to think about the first steps to solve this.'
+            
+        logger.info(f"Successfully generated drill: {result}")
         return result
         
     except Exception as e:
-        logger.error(f"Error generating drill: {e}")
+        logger.error(f"Error generating drill: {str(e)}")
+        logger.error(f"Full error details: ", exc_info=True)
         if language == "he":
             return {
                 'question': 'מצטער, נתקלתי בשגיאה. אנא נסה שוב.',
@@ -303,13 +320,19 @@ def generate_drill(subject: str, language: str = 'he') -> dict:
                 'hint': ''
             }
 
-def get_drill_answer(question: str, answer: str, language: str = 'he') -> dict:
+def get_drill_answer(
+    question: str,
+    user_answer: str,
+    correct_answer: str,
+    language: str = 'he'
+) -> dict:
     """
     Get the answer to a math drill using Claude in the specified language.
     
     Args:
         question: The drill question
-        answer: The student's answer
+        user_answer: The student's answer
+        correct_answer: The correct answer to compare against
         language: The language to generate the answer in (en, he, etc.)
     
     Returns:
@@ -317,14 +340,16 @@ def get_drill_answer(question: str, answer: str, language: str = 'he') -> dict:
     """
     if language == "he":
         prompt = f"""שאלה: {question}
-        תשובת התלמיד: {answer}
+        התשובה הנכונה: {correct_answer}
+        תשובת התלמיד: {user_answer}
         
         האם התשובה נכונה? תן משוב מפורט.
         אם התשובה נכונה, התחל את תשובתך עם [CORRECT].
         אם התשובה לא נכונה, תן רמז מועיל מבלי לתת את התשובה המלאה."""
     else:
         prompt = f"""Question: {question}
-        Student's answer: {answer}
+        Correct answer: {correct_answer}
+        Student's answer: {user_answer}
         
         Is this answer correct? Provide detailed feedback.
         If correct, start your response with [CORRECT].
@@ -337,14 +362,14 @@ def get_drill_answer(question: str, answer: str, language: str = 'he') -> dict:
             'feedback': response.replace('[CORRECT]', '').strip()
         }
     except Exception as e:
-        logger.error(f"Error checking answer: {e}")
+        logger.error(f"Error checking answer: {str(e)}")
         if language == "he":
             return {
                 'correct': False,
-                'feedback': 'מצטער, נתקלתי בשגיאה. אנא נסה שוב.'
+                'feedback': 'מצטער, נתקלתי בשגיאה בבדיקת התשובה. אנא נסה שוב.'
             }
         else:
             return {
                 'correct': False,
-                'feedback': 'Sorry, I encountered an error. Please try again.'
+                'feedback': 'Sorry, I encountered an error checking your answer. Please try again.'
             }
