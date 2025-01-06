@@ -1,51 +1,76 @@
-# Math Learning Assistant
+# Teaicher
 
-An interactive web application that helps students learn mathematics through personalized drills and an AI-powered tutor.
+An intelligent learning assistant built with Next.js and TypeScript.
 
 ## Features
 
-- Interactive subject selection gallery
-- Dynamic math drills for different subjects
-- AI-powered chat tutor for personalized help
-- Modern, soft UI design
-- Real-time feedback and assistance
+- Interactive chat-based learning interface
+- User authentication and session management
+- Real-time learning progress tracking
+- Responsive design with Tailwind CSS
 
-## Setup
+## Tech Stack
 
-1. Create a virtual environment and activate it:
+- Next.js 13+
+- TypeScript
+- Tailwind CSS
+- React Context for state management
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 16.8 or later
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+git clone [your-repository-url]
 ```
 
 2. Install dependencies:
 ```bash
-pip install -r requirements.txt
+npm install
+# or
+yarn install
 ```
 
-3. Create a `.env` file in the root directory and add your OpenAI API key:
-```
-OPENAI_API_KEY=your_api_key_here
-```
-
-4. Run the application:
+3. Create a `.env.local` file in the root directory with your environment variables:
 ```bash
-python app.py
+# Add your environment variables here
 ```
 
-5. Open your browser and navigate to `http://localhost:5000`
+4. Run the development server:
+```bash
+npm run dev
+# or
+yarn dev
+```
 
-## Subjects Available
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-- Algebra
-- Geometry
-- Arithmetic
-- Statistics
+## Project Structure
 
-## How to Use
+```
+├── app/                # Next.js app directory
+│   ├── api/           # API routes
+│   ├── auth/          # Authentication pages
+│   └── page.tsx       # Main application page
+├── components/        # React components
+├── contexts/         # React contexts
+├── types/           # TypeScript type definitions
+└── utils/           # Utility functions
+```
 
-1. Select a subject from the gallery
-2. View the practice problem
-3. Use the chat interface to get help from the AI tutor
-4. Click "New Problem" to get a different drill
-5. Continue practicing and learning!
+## Development
+
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm start`: Start production server
+- `npm run lint`: Run linting
+
+## License
+
+[Your chosen license]
